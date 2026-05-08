@@ -44,7 +44,7 @@ public class CloudDeploymentHandlerOptions {
         if (packagesPath == null || packagesPath.isEmpty()) {
             throw new ComponentException("The value of '" + PACKAGES_PATH_PROPNAME + "' is not defined");
         }
-        
+
         return packagesPath;
     }
 

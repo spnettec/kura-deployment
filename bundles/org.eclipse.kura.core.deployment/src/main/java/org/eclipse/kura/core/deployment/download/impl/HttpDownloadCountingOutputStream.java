@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2025 Eurotech and/or its affiliates and others
- *
+ * Copyright (c) 2011, 2020 Eurotech and/or its affiliates and others
+ * 
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0
- *
+ * 
  * Contributors:
  *  Eurotech
  *******************************************************************************/
@@ -19,6 +19,7 @@ import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.GeneralSecurityException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class HttpDownloadCountingOutputStream extends GenericDownloadCountingOutputStream
         implements DownloadCountingOutputStream {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpDownloadCountingOutputStream.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(HttpDownloadCountingOutputStream.class);
 
     private ExecutorService executor;
     private Future<Void> future;
@@ -70,7 +71,84 @@ public class HttpDownloadCountingOutputStream extends GenericDownloadCountingOut
 
         this.executor = Executors.newSingleThreadExecutor();
 
-        this.future = this.executor.submit(this::downloadTask);
+        this.future = this.executor.submit(new Callable<Void>() {
+
+            @Override
+            public Void call() throws Exception {
+                boolean shouldAuthenticate = false;
+                try {
+                    shouldAuthenticate = HttpDownloadCountingOutputStream.this.options.getUsername() != null
+                            && HttpDownloadCountingOutputStream.this.options.getPassword() != null
+                            && !(HttpDownloadCountingOutputStream.this.options.getUsername().trim().isEmpty()
+                                    && !HttpDownloadCountingOutputStream.this.options.getPassword().trim().isEmpty());
+
+                    if (shouldAuthenticate) {
+                        Authenticator.setDefault(new Authenticator() {
+
+                            @Override
+                            protected PasswordAuthentication getPasswordAuthentication() {
+                                return new PasswordAuthentication(
+                                        HttpDownloadCountingOutputStream.this.options.getUsername(),
+                                        HttpDownloadCountingOutputStream.this.options.getPassword().toCharArray());
+                            }
+                        });
+                    }
+
+                    HttpURLConnection.setFollowRedirects(false);
+                    URLConnection urlConnection = getUrlConnection(HttpDownloadCountingOutputStream.this.downloadURL);
+
+                    testConnectionProtocol(urlConnection);
+
+                    HttpDownloadCountingOutputStream.this.is = urlConnection.getInputStream();
+
+                    String s = urlConnection.getHeaderField("Content-Length");
+                    s_logger.info("Content-lenght: " + s);
+
+                    setTotalBytes(s != null ? Integer.parseInt(s) : -1);
+                    postProgressEvent(HttpDownloadCountingOutputStream.this.options.getClientId(), 0,
+                            HttpDownloadCountingOutputStream.this.totalBytes, DownloadStatus.IN_PROGRESS, null);
+
+                    int bufferSize = getBufferSize();
+
+                    if (bufferSize == 0 && getTotalBytes() > 0) {
+                        int newSize = Math.round(HttpDownloadCountingOutputStream.this.totalBytes / 100F + 1F);
+                        bufferSize = newSize;
+                        setBufferSize(newSize);
+                    } else if (bufferSize == 0) {
+                        int newSize = 1024 * 4;
+                        bufferSize = newSize;
+                        setBufferSize(newSize);
+                    }
+
+                    long numBytes = IOUtils.copyLarge(HttpDownloadCountingOutputStream.this.is,
+                            HttpDownloadCountingOutputStream.this, new byte[bufferSize]);
+                    postProgressEvent(HttpDownloadCountingOutputStream.this.options.getClientId(), numBytes,
+                            HttpDownloadCountingOutputStream.this.totalBytes, DownloadStatus.COMPLETED, null);
+
+                } catch (IOException e) {
+                    postProgressEvent(HttpDownloadCountingOutputStream.this.options.getClientId(), getByteCount(),
+                            HttpDownloadCountingOutputStream.this.totalBytes, DownloadStatus.FAILED, e.getMessage());
+                    throw new KuraConnectException(e);
+                } finally {
+                    if (HttpDownloadCountingOutputStream.this.is != null) {
+                        try {
+                            HttpDownloadCountingOutputStream.this.is.close();
+                        } catch (IOException e) {
+                        }
+                    }
+                    try {
+                        close();
+                    } catch (IOException e) {
+                    }
+                    if (shouldAuthenticate) {
+                        Authenticator.setDefault(null);
+                    }
+                }
+
+                return null;
+            }
+
+        });
 
         try {
             this.future.get();
@@ -82,139 +160,40 @@ public class HttpDownloadCountingOutputStream extends GenericDownloadCountingOut
         }
     }
 
-    private Void downloadTask() throws KuraException {
-        boolean shouldAuthenticate = false;
-        try {
-            shouldAuthenticate = HttpDownloadCountingOutputStream.this.options.getUsername() != null
-                    && HttpDownloadCountingOutputStream.this.options.getPassword() != null
-                    && !(HttpDownloadCountingOutputStream.this.options.getUsername().trim().isEmpty()
-                            && !HttpDownloadCountingOutputStream.this.options.getPassword().trim().isEmpty());
-
-            if (shouldAuthenticate) {
-                Authenticator.setDefault(new Authenticator() {
-
-                    @Override
-                    protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(HttpDownloadCountingOutputStream.this.options.getUsername(),
-                                HttpDownloadCountingOutputStream.this.options.getPassword().toCharArray());
-                    }
-                });
-            }
-
-            HttpURLConnection.setFollowRedirects(false);
-            URLConnection urlConnection = openAndConnect(HttpDownloadCountingOutputStream.this.downloadURL);
-
-
-            HttpDownloadCountingOutputStream.this.is = urlConnection.getInputStream();
-
-            String s = urlConnection.getHeaderField("Content-Length");
-            logger.info("Content-lenght: {}", s);
-
-            setTotalBytes(s != null ? Integer.parseInt(s) : -1);
-            postProgressEvent(HttpDownloadCountingOutputStream.this.options.getClientId(), 0,
-                    HttpDownloadCountingOutputStream.this.totalBytes, DownloadStatus.IN_PROGRESS, null);
-
-            int bufferSize = getBufferSize();
-
-            if (bufferSize == 0 && getTotalBytes() > 0) {
-                int newSize = Math.round(HttpDownloadCountingOutputStream.this.totalBytes / 100F + 1F);
-                bufferSize = newSize;
-                setBufferSize(newSize);
-            } else if (bufferSize == 0) {
-                int newSize = 1024 * 4;
-                bufferSize = newSize;
-                setBufferSize(newSize);
-            }
-
-            long numBytes = IOUtils.copyLarge(HttpDownloadCountingOutputStream.this.is,
-                    HttpDownloadCountingOutputStream.this, new byte[bufferSize]);
-            postProgressEvent(HttpDownloadCountingOutputStream.this.options.getClientId(), numBytes,
-                    HttpDownloadCountingOutputStream.this.totalBytes, DownloadStatus.COMPLETED, null);
-
-        } catch (IOException e) {
-            postProgressEvent(HttpDownloadCountingOutputStream.this.options.getClientId(), getByteCount(),
-                    HttpDownloadCountingOutputStream.this.totalBytes, DownloadStatus.FAILED, e.getMessage());
-            throw new KuraConnectException(e);
-        } finally {
-            if (HttpDownloadCountingOutputStream.this.is != null) {
-                try {
-                    HttpDownloadCountingOutputStream.this.is.close();
-                } catch (IOException e) {
-                    // Ignore
-                }
-            }
-            try {
-                close();
-            } catch (IOException e) {
-                // Ignore
-            }
-            if (shouldAuthenticate) {
-                Authenticator.setDefault(null);
-            }
-        }
-
-        return null;
-    }
-
-    private HttpURLConnection openAndConnect(String downloadUrlString) throws IOException, KuraConnectException {
+    private URLConnection getUrlConnection(String downloadUrlString) throws IOException {
         URL localUrl = new URL(downloadUrlString);
+        URLConnection urlConnection = localUrl.openConnection();
+        int connectTimeout = getConnectTimeout();
+        int readTimeout = getPropReadTimeout();
+        urlConnection.setConnectTimeout(connectTimeout);
+        urlConnection.setReadTimeout(readTimeout);
 
-        HttpURLConnection urlConnection = openConnection(localUrl);
-
-        checkIsHttpProtocol(urlConnection);
-        setupConnection(urlConnection);
-
-        urlConnection.connect();
-
-        int responseCode = urlConnection.getResponseCode();
-
-        if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || //
-                responseCode == HttpURLConnection.HTTP_MOVED_PERM || //
-                responseCode == HttpURLConnection.HTTP_SEE_OTHER) {
+        int responseCode = ((HttpURLConnection) urlConnection).getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HttpURLConnection.HTTP_MOVED_PERM
+                || responseCode == HttpURLConnection.HTTP_SEE_OTHER) {
             String newLocation = urlConnection.getHeaderField("Location");
             if (StringUtils.isNotEmpty(newLocation)) {
-                return openAndConnect(newLocation);
+                return getUrlConnection(newLocation);
             } else {
                 throw new KuraRuntimeException(KuraErrorCode.INVALID_PARAMETER);
             }
         }
         return urlConnection;
-
     }
 
-    private void setupConnection(HttpURLConnection urlConnection) throws IOException, KuraConnectException {
+    private void testConnectionProtocol(URLConnection urlConnection) throws IOException, KuraConnectException {
         try {
-            if (urlConnection instanceof HttpsURLConnection httpsURLConnection) {
-                httpsURLConnection.setSSLSocketFactory(this.sslManagerService.getSSLSocketFactory());
-
-                // hostname verification will be managed by the SSLSocketFactory returned by SSLManagerService
-                httpsURLConnection.setHostnameVerifier((hostname, session) -> true);
+            if (urlConnection instanceof HttpsURLConnection) {
+                ((HttpsURLConnection) urlConnection).setSSLSocketFactory(this.sslManagerService.getSSLSocketFactory());
+            } else if (!(urlConnection instanceof HttpURLConnection)) {
+                postProgressEvent(this.options.getClientId(), getByteCount(), this.totalBytes, DownloadStatus.FAILED,
+                        "The request URL is not supported");
+                throw new KuraConnectException("Unsupported protocol!");
             }
         } catch (GeneralSecurityException e) {
             postProgressEvent(this.options.getClientId(), getByteCount(), this.totalBytes, DownloadStatus.FAILED,
                     e.getMessage());
-
-            throw new KuraConnectException(e, "Unable to create SSL Socket Factory.");
+            throw new KuraConnectException(e, "Unsupported protocol!");
         }
-
-        int connectTimeout = getConnectTimeout();
-        int readTimeout = getPropReadTimeout();
-        urlConnection.setConnectTimeout(connectTimeout);
-        urlConnection.setReadTimeout(readTimeout);
-    }
-
-    // protected for testing purpose
-    protected HttpURLConnection openConnection(URL localUrl) throws IOException {
-        return (HttpURLConnection) localUrl.openConnection();
-    }
-
-    private void checkIsHttpProtocol(URLConnection urlConnection) throws KuraConnectException {
-
-        if (!(urlConnection instanceof HttpURLConnection)) { // includes HttpsURLConnection check
-            postProgressEvent(this.options.getClientId(), getByteCount(), this.totalBytes, DownloadStatus.FAILED,
-                    "The request URL is not supported");
-            throw new KuraConnectException("Unsupported protocol!");
-        }
-
     }
 }

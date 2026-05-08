@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2025 Eurotech and/or its affiliates and others
- *
+ * Copyright (c) 2011, 2023 Eurotech and/or its affiliates and others
+ * 
  * This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License 2.0
  * which is available at https://www.eclipse.org/legal/epl-2.0/
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0
- *
+ * 
  * Contributors:
  *  Eurotech
  *  Red Hat Inc
@@ -26,9 +26,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -100,9 +97,6 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
     private static final String READ_TIMEOUT_PROPNAME = "dpa.read.timeout";
 
     private static final long THREAD_TERMINATION_TOUT = 1; // in seconds
-
-    private static final Set<PosixFilePermission> DEFAULT_PACKAGES_DIR_PERMISSIONS = PosixFilePermissions
-            .fromString("rwx------");
 
     private DeploymentAdmin deploymentAdmin;
     private EventAdmin eventAdmin;
@@ -178,13 +172,8 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
         }
 
         File packagesDir = new File(this.packagesPath);
-        if (!packagesDir.exists()) {
-            try {
-                Files.createDirectories(Path.of(this.packagesPath),
-                        PosixFilePermissions.asFileAttribute(DEFAULT_PACKAGES_DIR_PERMISSIONS));
-            } catch (Exception e) {
-                throw new ComponentException("Cannot create packages directory", e);
-            }
+        if (!packagesDir.exists() && !packagesDir.mkdirs()) {
+            throw new ComponentException("Cannot create packages directory");
         }
 
         installPackagesFromConfFile();
@@ -287,7 +276,7 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
         MarketplacePackageDescriptorBuilder descriptorBuilder = MarketplacePackageDescriptor.builder();
 
         try {
-            connection = (HttpsURLConnection) new URL(url).openConnection();
+            connection = (HttpsURLConnection) new URI(url).toURL().openConnection();
             connection.setSSLSocketFactory(sslManagerServiceOverride.getSSLSocketFactory());
 
             connection.setRequestMethod("GET");
@@ -430,7 +419,7 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
 
                 Properties deployedPackages = readDeployedPackages();
                 String sUrl = deployedPackages.getProperty(name);
-                File dpFile = new File(new URL(sUrl).getPath());
+                File dpFile = new File(new URI(sUrl).getPath());
                 if (!Files.deleteIfExists(dpFile.toPath())) {
                     logger.warn("Cannot delete file at URL: {}", sUrl);
                 }
@@ -451,6 +440,9 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
     }
 
     private void postInstalledEvent(DeploymentPackage dp, String url, boolean successful, Exception e) {
+        if (this.eventAdmin == null) {
+            return;
+        }
         Map<String, Object> props = new HashMap<>();
 
         if (dp != null) {
@@ -469,6 +461,9 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
     }
 
     private void postUninstalledEvent(String name, boolean successful, Exception e) {
+        if (this.eventAdmin == null) {
+            return;
+        }
         Map<String, Object> props = new HashMap<>();
         props.put(EVENT_PACKAGE_NAME, name);
         props.put(EVENT_SUCCESSFUL, successful);
@@ -514,8 +509,8 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
     }
 
     private DeploymentPackage installDeploymentPackageInternal(String urlSpec)
-            throws DeploymentException, IOException, GeneralSecurityException {
-        URL url = new URL(urlSpec);
+            throws DeploymentException, IOException, GeneralSecurityException, URISyntaxException {
+        URL url = new URI(urlSpec).toURL();
         File dpFile = null;
         if (!"file".equals(url.getProtocol())) {
             dpFile = getFileFromRemote(url);
@@ -555,7 +550,7 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
         return dp;
     }
 
-    private File getFileFromRemote(URL url) throws GeneralSecurityException, IOException {
+    private File getFileFromRemote(URL url) throws GeneralSecurityException, IOException, URISyntaxException {
 
         File dpFile = File.createTempFile("dpa", null);
         dpFile.deleteOnExit();
@@ -576,7 +571,7 @@ public class DeploymentAgent implements DeploymentAgentService, ConfigurableComp
                 || responseCode == HttpURLConnection.HTTP_SEE_OTHER) {
             String newLocation = urlConnection.getHeaderField("Location");
             if (StringUtils.isNotEmpty(newLocation)) {
-                return getFileFromRemote(new URL(newLocation));
+                return getFileFromRemote(new URI(newLocation).toURL());
             } else {
                 throw new KuraRuntimeException(KuraErrorCode.INVALID_PARAMETER);
             }
