@@ -69,7 +69,7 @@ public class HttpDownloadCountingOutputStream extends GenericDownloadCountingOut
     @Override
     public void startWork() throws KuraException {
 
-        this.executor = Executors.newSingleThreadExecutor();
+        this.executor = Executors.newSingleThreadExecutor(Thread.ofVirtual().factory());
 
         this.future = this.executor.submit(new Callable<Void>() {
 

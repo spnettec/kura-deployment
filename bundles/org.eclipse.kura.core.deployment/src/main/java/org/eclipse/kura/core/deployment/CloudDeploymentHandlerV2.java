@@ -147,7 +147,7 @@ public class CloudDeploymentHandlerV2 implements ConfigurableComponent, RequestH
     private DeploymentHookManager deploymentHookManager;
     private CommandExecutorService executorService;
 
-    private static java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor();
+    private static java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor(Thread.ofVirtual().factory());
 
     private Future<?> downloaderFuture;
     private Future<?> installerFuture;
