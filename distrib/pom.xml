@@ -225,7 +225,7 @@
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>
-                                        <prefix>/opt/eclipse/kura/plugins/4s</prefix>
+                                        <prefix>/opt/eclipse/kura/siblings/deployment/4s</prefix>
                                         <user>kurad</user>
                                         <group>kurad</group>
                                         <filemode>600</filemode>
@@ -236,7 +236,7 @@
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>
-                                        <prefix>/opt/eclipse/kura/plugins/5s</prefix>
+                                        <prefix>/opt/eclipse/kura/siblings/deployment/5s</prefix>
                                         <user>kurad</user>
                                         <group>kurad</group>
                                         <filemode>600</filemode>
@@ -247,7 +247,7 @@
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>
-                                        <prefix>/opt/eclipse/kura/plugins/5s</prefix>
+                                        <prefix>/opt/eclipse/kura/siblings/deployment/5s</prefix>
                                         <user>kurad</user>
                                         <group>kurad</group>
                                         <filemode>600</filemode>
@@ -258,7 +258,7 @@
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>
-                                        <prefix>/opt/eclipse/kura/plugins/4s</prefix>
+                                        <prefix>/opt/eclipse/kura/siblings/deployment/4s</prefix>
                                         <user>kurad</user>
                                         <group>kurad</group>
                                         <filemode>600</filemode>
