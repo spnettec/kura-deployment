@@ -21,3 +21,4 @@ Import-Package: javax.net.ssl,
  org.slf4j;version="[1.7.0,3)"
 Bundle-ClassPath: .
 Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21

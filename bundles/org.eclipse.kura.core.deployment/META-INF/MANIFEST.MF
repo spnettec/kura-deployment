@@ -42,3 +42,4 @@ Export-Package: org.eclipse.kura.core.deployment;version="1.0.0",
  org.eclipse.kura.core.deployment.download;version="1.0.0",
  org.eclipse.kura.core.deployment.install;version="1.0.0",
  org.eclipse.kura.core.deployment.hook;version="1.0.0"
+Bundle-RequiredExecutionEnvironment: JavaSE-21
