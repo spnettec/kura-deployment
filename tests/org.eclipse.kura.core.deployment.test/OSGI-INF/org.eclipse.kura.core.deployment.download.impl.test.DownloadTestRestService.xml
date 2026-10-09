@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" name="org.eclipse.kura.core.deployment.download.impl.test.DownloadTestRestService" immediate="true">
+  <property name="kura.service.pid" type="String" value="org.eclipse.kura.core.deployment.download.impl.test.DownloadTestRestService"/>
+  <property name="osgi.jakartars.resource" type="String" value="true"/>
+  <service>
+    <provide interface="org.eclipse.kura.core.deployment.download.impl.test.DownloadTestRestService"/>
+  </service>
+  <implementation class="org.eclipse.kura.core.deployment.download.impl.test.DownloadTestRestService"/>
+</scr:component>
