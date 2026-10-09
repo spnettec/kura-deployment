@@ -300,6 +300,7 @@ public class InstallImpl {
         } catch (IOException ex) {
             logger.error("Unable to move downloaded DP from '" + downloadedFile.getCanonicalPath() + "' to '"
                     + dpPersistentFilePath.toString() + "'.", ex);
+            throw ex;
         } finally {
             if (!downloadedFile.getCanonicalPath().equals(dpPersistentFilePath.toString())) {
                 downloadedFile.delete();
