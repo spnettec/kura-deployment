@@ -97,8 +97,6 @@ public class HttpDownloadCountingOutputStream extends GenericDownloadCountingOut
                     HttpURLConnection.setFollowRedirects(false);
                     URLConnection urlConnection = getUrlConnection(HttpDownloadCountingOutputStream.this.downloadURL);
 
-                    testConnectionProtocol(urlConnection);
-
                     HttpDownloadCountingOutputStream.this.is = urlConnection.getInputStream();
 
                     String s = urlConnection.getHeaderField("Content-Length");
@@ -160,13 +158,17 @@ public class HttpDownloadCountingOutputStream extends GenericDownloadCountingOut
         }
     }
 
-    private URLConnection getUrlConnection(String downloadUrlString) throws IOException {
+    private URLConnection getUrlConnection(String downloadUrlString) throws IOException, KuraConnectException {
         URL localUrl = new URL(downloadUrlString);
-        URLConnection urlConnection = localUrl.openConnection();
+        URLConnection urlConnection = openConnection(localUrl);
         int connectTimeout = getConnectTimeout();
         int readTimeout = getPropReadTimeout();
         urlConnection.setConnectTimeout(connectTimeout);
         urlConnection.setReadTimeout(readTimeout);
+
+        // getResponseCode() can perform the HTTPS handshake. Configure Kura's
+        // socket factory before the first operation that connects to the server.
+        testConnectionProtocol(urlConnection);
 
         int responseCode = ((HttpURLConnection) urlConnection).getResponseCode();
         if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HttpURLConnection.HTTP_MOVED_PERM
@@ -179,6 +181,10 @@ public class HttpDownloadCountingOutputStream extends GenericDownloadCountingOut
             }
         }
         return urlConnection;
+    }
+
+    protected URLConnection openConnection(URL localUrl) throws IOException {
+        return localUrl.openConnection();
     }
 
     private void testConnectionProtocol(URLConnection urlConnection) throws IOException, KuraConnectException {
