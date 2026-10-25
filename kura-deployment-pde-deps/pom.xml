@@ -12,21 +12,16 @@
     Contributors:
      Eurotech
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>org.eclipse.kura</groupId>
     <artifactId>kura-deployment-pde-deps</artifactId>
     <version>2.0.0-SNAPSHOT</version>
-
     <packaging>pom</packaging>
     <name>Kura Deployment PDE Dependencies</name>
-
     <dependencyManagement>
-        <dependencies>        <!-- Demo bundles -->
+        <dependencies>
+            <!-- Demo bundles -->
             <dependency>
                 <groupId>org.eclipse.kura</groupId>
                 <artifactId>org.eclipse.kura.core.deployment</artifactId>
@@ -49,7 +44,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
     <dependencies>
         <dependency>
             <groupId>org.eclipse.kura</groupId>
@@ -68,7 +62,6 @@
             <artifactId>org.eclipse.kura.rest.packages.provider</artifactId>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -81,5 +74,5 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
+

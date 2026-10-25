@@ -13,22 +13,16 @@
      Eurotech
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>org.eclipse.kura</groupId>
         <artifactId>kura-deployment.parent</artifactId>
         <version>2.0.0-SNAPSHOT</version>
         <relativePath>../bundles/pom.xml</relativePath>
     </parent>
-
     <artifactId>kura-deployment.distrib</artifactId>
     <packaging>pom</packaging>
-
     <dependencies>
         <dependency>
             <groupId>org.eclipse.kura</groupId>
@@ -51,31 +45,23 @@
             <version>${project.version}</version>
         </dependency>
     </dependencies>
-
     <organization>
         <name>Eclipse Kura</name>
         <url>https://eclipse.dev/kura/</url>
     </organization>
-
     <properties>
-
         <core.deployment.jar.name>org.eclipse.kura.core.deployment-${project.version}.jar</core.deployment.jar.name>
         <deployment.agent.jar.name>org.eclipse.kura.deployment.agent-${project.version}.jar</deployment.agent.jar.name>
         <hook.file.move.provider.jar.name>org.eclipse.kura.hook.file.move.provider-${project.version}.jar</hook.file.move.provider.jar.name>
         <rest.packages.provider.jar.name>org.eclipse.kura.rest.packages.provider-${project.version}.jar</rest.packages.provider.jar.name>
-
         <deb.architecture>all</deb.architecture>
-
         <package.name>kura-deployment</package.name>
-
         <kura.repo.distribution>kura-6</kura.repo.distribution>
         <kura.repo.module>base</kura.repo.module>
-
         <!-- edit following fields and file deb/control/control -->
         <summary>Kura addon for Deployment package</summary>
         <long.description>This add-on provides support for the installation and management of the deployment packages.</long.description>
     </properties>
-
     <profiles>
         <!-- Internal profile: FOR INTERNAL USE ONLY - active if -DreleaseBuild is *not* specified. -->
         <profile>
@@ -88,7 +74,6 @@
             <properties>
                 <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
                 <package.snapshot>git${maven.build.timestamp}.${git.commit.id.abbrev}</package.snapshot>
-
                 <package.version>${release.version}~${package.snapshot}</package.version>
                 <package.revision>1</package.revision>
             </properties>
@@ -132,7 +117,6 @@
             </build>
         </profile>
     </profiles>
-
     <build>
         <plugins>
             <!-- Responsible for removing the "-SNAPSHOT" from the project.version -->
@@ -150,13 +134,12 @@
                             <name>release.version</name>
                             <value>${project.version}</value>
                             <regex>-SNAPSHOT</regex>
-                            <replacement></replacement>
+                            <replacement />
                             <failIfNoMatch>false</failIfNoMatch>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-
             <!-- Responsible for retrieving the short git commit (defaults to length 7) -->
             <plugin>
                 <groupId>io.github.git-commit-id</groupId>
@@ -180,7 +163,6 @@
                     </includeOnlyProperties>
                 </configuration>
             </plugin>
-            
             <!-- Responsible for copying the dependencies into a known location -->
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -200,7 +182,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.vafer</groupId>
                 <artifactId>jdeb</artifactId>
@@ -292,7 +273,7 @@
                     </execution>
                 </executions>
             </plugin>
-
         </plugins>
     </build>
 </project>
+
